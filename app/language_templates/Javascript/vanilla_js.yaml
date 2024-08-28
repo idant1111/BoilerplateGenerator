@@ -1,0 +1,135 @@
+vanilla_js:
+  src:
+    index.html: |
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Vanilla JavaScript App</title>
+          <link rel="stylesheet" href="styles.css">
+      </head>
+      <body>
+          <h1>Hello, World!</h1>
+          <p id="message">This is a simple Vanilla JavaScript application.</p>
+          <button id="btn">Click Me!</button>
+          <script src="main.js"></script>
+      </body>
+      </html>
+    main.js: |
+      document.getElementById('btn').addEventListener('click', function() {
+          document.getElementById('message').textContent = 'Button Clicked!';
+      });
+    styles.css: |
+      body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          text-align: center;
+          background-color: #f0f0f0;
+      }
+      h1 {
+          color: #333;
+      }
+  server:
+    server.js: |
+      const express = require('express');
+      const path = require('path');
+      const app = express();
+      const port = process.env.PORT || 3000;
+
+      app.use(express.static(path.join(__dirname, '../src')));
+
+      app.get('/', (req, res) => {
+        res.sendFile(path.join(__dirname, '../src/index.html'));
+      });
+
+      app.listen(port, () => {
+        console.log(`Server is running on http://localhost:${port}`);
+      });
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "3000:3000"
+          volumes:
+            - .:/app
+          environment:
+            - NODE_ENV=development
+    Dockerfile: |
+      FROM node:14
+
+      WORKDIR /app
+
+      COPY package*.json ./
+
+      RUN npm install
+
+      COPY . .
+
+      EXPOSE 3000
+
+      CMD ["node", "server/server.js"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: vanilla-js-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: vanilla-js-app
+          template:
+            metadata:
+              labels:
+                app: vanilla-js-app
+            spec:
+              containers:
+              - name: vanilla-js-app
+                image: vanilla-js-app:latest
+                ports:
+                - containerPort: 3000
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: vanilla-js-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 3000
+          selector:
+            app: vanilla-js-app
+  package.json: |
+    {
+      "name": "vanilla-js-app",
+      "version": "1.0.0",
+      "description": "A simple Vanilla JavaScript application with a Node.js server",
+      "main": "server/server.js",
+      "scripts": {
+        "start": "node server/server.js"
+      },
+      "dependencies": {
+        "express": "^4.17.1"
+      }
+    }
+  README.md: |
+    # Vanilla JavaScript Application
+
+    This is a simple Vanilla JavaScript application with a basic Node.js server.
+
+    ## Setup and Running
+
+    1. Run `npm install` to install dependencies.
+    2. Run `npm start` to start the server and serve the application.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

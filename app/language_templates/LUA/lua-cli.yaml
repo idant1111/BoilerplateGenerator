@@ -1,0 +1,43 @@
+lua_cli_app:
+  src:
+    main.lua: |
+      local argparse = require("argparse")
+
+      local parser = argparse("hello", "A simple Lua CLI")
+      parser:option("-n --name", "Name to greet"):default("World")
+
+      local args = parser:parse()
+
+      print("Hello, " .. args.name .. "!")
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        cli:
+          build: .
+          volumes:
+            - .:/app
+          environment:
+            - LUA_ENV=development
+    Dockerfile: |
+      FROM lua:5.4
+
+      WORKDIR /app
+
+      COPY . .
+
+      RUN luarocks install argparse
+
+      CMD ["lua", "src/main.lua"]
+  README.md: |
+    # Lua CLI Application
+
+    This is a comprehensive Lua command-line application using the `argparse` library.
+
+    ## Setup and Running
+
+    1. Ensure Lua is installed on your machine.
+    2. Run `lua src/main.lua --name=YourName` to execute the command-line application.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.

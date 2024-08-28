@@ -1,0 +1,98 @@
+rust_web_app:
+  src:
+    main.rs: |
+      use actix_web::{web, App, HttpServer, Responder};
+
+      async fn greet() -> impl Responder {
+          "Hello, World!"
+      }
+
+      #[actix_web::main]
+      async fn main() -> std::io::Result<()> {
+          HttpServer::new(|| {
+              App::new()
+                  .route("/", web::get().to(greet))
+          })
+          .bind("0.0.0.0:8080")?
+          .run()
+          .await
+      }
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "8080:8080"
+          volumes:
+            - .:/app
+          environment:
+            - RUST_ENV=development
+    Dockerfile: |
+      FROM rust:1.65
+
+      WORKDIR /app
+
+      COPY . .
+
+      RUN cargo build --release
+
+      EXPOSE 8080
+
+      CMD ["./target/release/rust_web_app"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: rust-web-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: rust-web-app
+          template:
+            metadata:
+              labels:
+                app: rust-web-app
+            spec:
+              containers:
+              - name: rust-web-app
+                image: rust-web-app:latest
+                ports:
+                - containerPort: 8080
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: rust-web-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 8080
+          selector:
+            app: rust-web-app
+  Cargo.toml: |
+    [package]
+    name = "rust_web_app"
+    version = "0.1.0"
+    edition = "2021"
+
+    [dependencies]
+    actix-web = "4.0.0"
+  README.md: |
+    # Rust Web Application
+
+    This is a comprehensive Rust web application using Actix-web framework.
+
+    ## Setup and Running
+
+    1. Run `cargo build` to build the project.
+    2. Run `cargo run` to start the application.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

@@ -1,0 +1,121 @@
+vue_app:
+  src:
+    App.vue: |
+      <template>
+        <div id="app">
+          <h1>Hello World!</h1>
+        </div>
+      </template>
+
+      <script>
+      export default {
+        name: 'App',
+      };
+      </script>
+
+      <style scoped>
+      h1 {
+        color: #42b983;
+      }
+      </style>
+  public:
+    index.html: |
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Vue.js App</title>
+      </head>
+      <body>
+          <div id="app"></div>
+          <script src="/dist/build.js"></script>
+      </body>
+      </html>
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "8080:8080"
+          volumes:
+            - .:/app
+          environment:
+            - NODE_ENV=development
+    Dockerfile: |
+      FROM node:14
+
+      WORKDIR /app
+
+      COPY package*.json ./
+
+      RUN npm install
+
+      COPY . .
+
+      EXPOSE 8080
+
+      CMD ["npm", "run", "serve"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: vue-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: vue-app
+          template:
+            metadata:
+              labels:
+                app: vue-app
+            spec:
+              containers:
+              - name: vue-app
+                image: vue-app:latest
+                ports:
+                - containerPort: 8080
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: vue-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 8080
+          selector:
+            app: vue-app
+  package.json: |
+    {
+      "name": "vue-app",
+      "version": "1.0.0",
+      "description": "A comprehensive Vue.js application",
+      "main": "src/main.js",
+      "scripts": {
+        "serve": "vue-cli-service serve",
+        "build": "vue-cli-service build"
+      },
+      "dependencies": {
+        "vue": "^3.0.0"
+      }
+    }
+  README.md: |
+    # Vue.js Application
+
+    This is a comprehensive Vue.js application that includes Docker and Kubernetes deployment configurations.
+
+    ## Setup and Running
+
+    1. Run `npm install` to install dependencies.
+    2. Run `npm run serve` to start the development server.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

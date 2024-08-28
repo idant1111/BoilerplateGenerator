@@ -1,0 +1,55 @@
+rust_cli_app:
+  src:
+    main.rs: |
+      use structopt::StructOpt;
+
+      #[derive(StructOpt)]
+      struct Cli {
+          #[structopt(short, long, default_value = "World")]
+          name: String,
+      }
+
+      fn main() {
+          let args = Cli::from_args();
+          println!("Hello, {}!", args.name);
+      }
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        cli:
+          build: .
+          volumes:
+            - .:/app
+          environment:
+            - RUST_ENV=development
+    Dockerfile: |
+      FROM rust:1.65
+
+      WORKDIR /app
+
+      COPY . .
+
+      RUN cargo build --release
+
+      CMD ["./target/release/rust_cli_app"]
+  Cargo.toml: |
+    [package]
+    name = "rust_cli_app"
+    version = "0.1.0"
+    edition = "2021"
+
+    [dependencies]
+    structopt = "0.3"
+  README.md: |
+    # Rust CLI Application
+
+    This is a comprehensive Rust command-line application using StructOpt.
+
+    ## Setup and Running
+
+    1. Run `cargo build` to build the project.
+    2. Run `cargo run -- --name=YourName` to execute the command-line application.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.

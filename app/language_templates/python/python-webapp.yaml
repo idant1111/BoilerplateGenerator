@@ -1,0 +1,222 @@
+python-web_app:
+  webapp:
+    src:
+      app:
+        __init__.py: |
+          from flask import Flask
+          from app.config import Config
+          from app.extensions import db
+          from app.main import main_bp
+          from app.api import api_bp
+
+          def create_app(config_class=Config):
+              app = Flask(__name__)
+              app.config.from_object(config_class)
+
+              # Initialize Flask extensions here
+              db.init_app(app)
+
+              # Register blueprints here
+              app.register_blueprint(main_bp)
+              app.register_blueprint(api_bp, url_prefix='/api')
+
+              return app
+        config.py: |
+          import os
+          from dotenv import load_dotenv
+
+          load_dotenv()
+
+          class Config:
+              SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+              SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
+              SQLALCHEMY_TRACK_MODIFICATIONS = False
+        extensions.py: |
+          from flask_sqlalchemy import SQLAlchemy
+
+          db = SQLAlchemy()
+        main:
+          __init__.py: |
+            from flask import Blueprint
+
+            main_bp = Blueprint('main', __name__)
+
+            from app.main import routes
+          routes.py: |
+            from flask import render_template
+            from app.main import main_bp
+
+            @main_bp.route('/')
+            def index():
+                return render_template('index.html')
+        api:
+          __init__.py: |
+            from flask import Blueprint
+
+            api_bp = Blueprint('api', __name__)
+
+            from app.api import routes
+          routes.py: |
+            from flask import jsonify
+            from app.api import api_bp
+
+            @api_bp.route('/hello')
+            def hello():
+                return jsonify(message="Hello, World!")
+        models:
+          __init__.py: |
+            from app.extensions import db
+
+            class User(db.Model):
+                id = db.Column(db.Integer, primary_key=True)
+                username = db.Column(db.String(64), index=True, unique=True)
+                email = db.Column(db.String(120), index=True, unique=True)
+
+                def __repr__(self):
+                    return f'<User {self.username}>'
+        templates:
+          base.html: |
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>{% block title %}My Flask App{% endblock %}</title>
+            </head>
+            <body>
+                {% block content %}{% endblock %}
+            </body>
+            </html>
+          index.html: |
+            {% extends "base.html" %}
+            {% block content %}
+                <h1>Welcome to My Flask App</h1>
+            {% endblock %}
+        static:
+          css:
+            style.css: |
+              body {
+                  font-family: Arial, sans-serif;
+                  margin: 0;
+                  padding: 0;
+                  line-height: 1.6;
+              }
+          js:
+            main.js: |
+              console.log('Hello from JavaScript!');
+      tests:
+        __init__.py: ""
+        conftest.py: |
+          import pytest
+          from app import create_app
+          from app.extensions import db
+
+          @pytest.fixture
+          def app():
+              app = create_app()
+              app.config['TESTING'] = True
+              app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+              
+              with app.app_context():
+                  db.create_all()
+              
+              yield app
+
+              with app.app_context():
+                  db.drop_all()
+
+          @pytest.fixture
+          def client(app):
+              return app.test_client()
+        test_main.py: |
+          def test_index(client):
+              response = client.get('/')
+              assert response.status_code == 200
+        test_api.py: |
+          import json
+
+          def test_hello_api(client):
+              response = client.get('/api/hello')
+              assert response.status_code == 200
+              data = json.loads(response.data)
+              assert data['message'] == 'Hello, World!'
+      main.py: |
+        from app import create_app
+
+        app = create_app()
+
+        if __name__ == '__main__':
+            app.run(debug=True)
+    requirements.txt: |
+      flask==2.3.2
+      flask-sqlalchemy==3.0.3
+      python-dotenv==1.0.0
+      pytest==7.3.1
+    .env.example: |
+      FLASK_APP=main.py
+      FLASK_ENV=development
+      SECRET_KEY=your-secret-key-here
+      DATABASE_URL=sqlite:///app.db
+    README.md: |
+      # Flask Web Application
+
+      This is a template for a Flask web application.
+
+      ## Setup and Running
+
+      1. Clone the repository
+      2. Copy `.env.example` to `.env` and adjust as needed
+      3. Run the application:
+         - With Docker: `docker-compose up`
+         - Or locally: 
+           - Create a virtual environment: `python -m venv venv`
+           - Activate the virtual environment:
+             - On Windows: `venv\Scripts\activate`
+             - On Unix or MacOS: `source venv/bin/activate`
+           - Install the requirements: `pip install -r requirements.txt`
+           - Run the application: `flask run`
+
+      ## Running Tests
+
+      Run the tests using pytest: `pytest`
+
+    Dockerfile: |
+      FROM python:3.11-slim-buster
+
+      WORKDIR /app
+
+      COPY requirements.txt requirements.txt
+      RUN pip install --no-cache-dir -r requirements.txt
+
+      COPY . .
+
+      CMD ["flask", "run", "--host=0.0.0.0"]
+
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "5000:5000"
+          environment:
+            - FLASK_ENV=development
+            - FLASK_APP=main.py
+            - SECRET_KEY=your-secret-key-here
+            - DATABASE_URL=sqlite:///app.db
+          volumes:
+            - .:/app
+          depends_on:
+            - db
+        db:
+          image: postgres:13
+          environment:
+            POSTGRES_USER: user
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: app_db
+          volumes:
+            - pgdata:/var/lib/postgresql/data
+
+      volumes:
+        pgdata:

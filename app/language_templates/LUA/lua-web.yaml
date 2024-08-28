@@ -1,0 +1,97 @@
+lua_web_app:
+  src:
+    init.lua: |
+      local _M = {}
+
+      function _M.hello()
+          ngx.say("Hello, World from Lua!")
+      end
+
+      return _M
+  nginx:
+    nginx.conf: |
+      worker_processes 1;
+
+      events {
+          worker_connections 1024;
+      }
+
+      http {
+          server {
+              listen 8080;
+
+              location / {
+                  default_type text/html;
+                  content_by_lua_file /app/src/init.lua;
+              }
+          }
+      }
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "8080:8080"
+          volumes:
+            - .:/app
+          environment:
+            - LUA_ENV=development
+    Dockerfile: |
+      FROM openresty/openresty:alpine
+
+      WORKDIR /app
+
+      COPY . .
+
+      EXPOSE 8080
+
+      CMD ["openresty", "-g", "daemon off;", "-c", "/app/nginx/nginx.conf"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: lua-web-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: lua-web-app
+          template:
+            metadata:
+              labels:
+                app: lua-web-app
+            spec:
+              containers:
+              - name: lua-web-app
+                image: lua-web-app:latest
+                ports:
+                - containerPort: 8080
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: lua-web-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 8080
+          selector:
+            app: lua-web-app
+  README.md: |
+    # Lua Web Application with OpenResty
+
+    This is a comprehensive Lua web application using OpenResty.
+
+    ## Setup and Running
+
+    1. Install OpenResty on your machine (if not using Docker).
+    2. Run `openresty -c nginx/nginx.conf` to start the server.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

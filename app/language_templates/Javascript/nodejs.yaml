@@ -1,0 +1,131 @@
+node_app:
+  src:
+    server.js: |
+      const express = require('express');
+      const app = express();
+      const port = process.env.PORT || 3000;
+
+      // Middleware
+      app.use(express.json());
+      app.use(express.static('public'));
+
+      // API Route
+      app.get('/api', (req, res) => {
+        res.json({ message: 'Hello from the server!' });
+      });
+
+      // Catch-all route for SPA
+      app.get('*', (req, res) => {
+        res.sendFile(__dirname + '/public/index.html');
+      });
+
+      app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+      });
+  public:
+    index.html: |
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Node.js App</title>
+      </head>
+      <body>
+          <h1>Hello from Node.js!</h1>
+          <p id="message"></p>
+          <script src="main.js"></script>
+      </body>
+      </html>
+    main.js: |
+      fetch('/api')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('message').textContent = data.message;
+        });
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "3000:3000"
+          volumes:
+            - .:/app
+          environment:
+            - NODE_ENV=development
+    Dockerfile: |
+      FROM node:14
+
+      WORKDIR /app
+
+      COPY package*.json ./
+
+      RUN npm install
+
+      COPY . .
+
+      EXPOSE 3000
+
+      CMD ["node", "src/server.js"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: node-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: node-app
+          template:
+            metadata:
+              labels:
+                app: node-app
+            spec:
+              containers:
+              - name: node-app
+                image: node-app:latest
+                ports:
+                - containerPort: 3000
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: node-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 3000
+          selector:
+            app: node-app
+  package.json: |
+    {
+      "name": "node-app",
+      "version": "1.0.0",
+      "description": "A comprehensive Node.js application",
+      "main": "src/server.js",
+      "scripts": {
+        "start": "node src/server.js"
+      },
+      "dependencies": {
+        "express": "^4.17.1"
+      }
+    }
+  README.md: |
+    # Node.js Application
+
+    This is a comprehensive Node.js application with a simple API, static file serving, and client-side interaction.
+
+    ## Setup and Running
+
+    1. Run `npm install` to install dependencies.
+    2. Run `npm start` to start the server.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

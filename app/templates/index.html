@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Template Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Project Template Generator</h1>
+        <form method="POST">
+            <div class="form-group">
+                <label for="language">Language:</label>
+                <select name="language" id="language" required onchange="updateProjectTypes()">
+                    {% for lang in options.keys() %}
+                    <option value="{{ lang }}">{{ lang }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="project_type">Project Type:</label>
+                <select name="project_type" id="project_type" required>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="project_name">Project Name:</label>
+                <input type="text" name="project_name" id="project_name" required placeholder="MyProject">
+            </div>
+            
+            <button type="submit">Generate Project</button>
+        </form>
+        <div class="instructions">
+            <h2>How to use your generated project:</h2>
+            <ol>
+                <li>Download the zip file containing your project structure.</li>
+                <li>Extract the contents to your desired location.</li>
+                <li>Open the project folder in your preferred code editor.</li>
+                <li>Follow the instructions in the README.md file to set up and run your project.</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const options = {{ options | tojson | safe }};
+
+        function updateProjectTypes() {
+            const language = document.getElementById('language').value;
+            const projectTypeSelect = document.getElementById('project_type');
+            projectTypeSelect.innerHTML = '';
+
+            options[language].forEach(projectType => {
+                const option = document.createElement('option');
+                option.value = projectType;
+                option.textContent = projectType;
+                projectTypeSelect.appendChild(option);
+            });
+        }
+
+        // Initial call to populate project types
+        updateProjectTypes();
+    </script>
+</body>
+</html>

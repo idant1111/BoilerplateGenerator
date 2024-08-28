@@ -1,0 +1,138 @@
+react_app:
+  src:
+    App.js: |
+      import React from 'react';
+
+      function App() {
+        return (
+          <div className="App">
+            <h1>Hello World!</h1>
+          </div>
+        );
+      }
+
+      export default App;
+    index.js: |
+      import React from 'react';
+      import ReactDOM from 'react-dom';
+      import './index.css';
+      import App from './App';
+
+      ReactDOM.render(
+        <React.StrictMode>
+          <App />
+        </React.StrictMode>,
+        document.getElementById('root')
+      );
+    index.css: |
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #282c34;
+        color: white;
+      }
+  public:
+    index.html: |
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>React App</title>
+      </head>
+      <body>
+          <noscript>You need to enable JavaScript to run this app.</noscript>
+          <div id="root"></div>
+      </body>
+      </html>
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "3000:3000"
+          volumes:
+            - .:/app
+          environment:
+            - NODE_ENV=development
+    Dockerfile: |
+      FROM node:14
+
+      WORKDIR /app
+
+      COPY package*.json ./
+
+      RUN npm install
+
+      COPY . .
+
+      EXPOSE 3000
+
+      CMD ["npm", "start"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: react-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: react-app
+          template:
+            metadata:
+              labels:
+                app: react-app
+            spec:
+              containers:
+              - name: react-app
+                image: react-app:latest
+                ports:
+                - containerPort: 3000
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: react-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 3000
+          selector:
+            app: react-app
+  package.json: |
+    {
+      "name": "react-app",
+      "version": "1.0.0",
+      "description": "A comprehensive React.js application",
+      "main": "src/index.js",
+      "scripts": {
+        "start": "react-scripts start",
+        "build": "react-scripts build",
+        "test": "react-scripts test",
+        "eject": "react-scripts eject"
+      },
+      "dependencies": {
+        "react": "^18.0.0",
+        "react-dom": "^18.0.0",
+        "react-scripts": "^5.0.0"
+      }
+    }
+  README.md: |
+    # React Application
+
+    This is a comprehensive React application that includes Docker and Kubernetes deployment configurations.
+
+    ## Setup and Running
+
+    1. Run `npm install` to install dependencies.
+    2. Run `npm start` to start the development server.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

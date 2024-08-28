@@ -1,0 +1,145 @@
+java_spring_boot_app:
+  src:
+    main:
+      java:
+        com:
+          example:
+            demo:
+              DemoApplication.java: |
+                package com.example.demo;
+
+                import org.springframework.boot.SpringApplication;
+                import org.springframework.boot.autoconfigure.SpringBootApplication;
+                import org.springframework.web.bind.annotation.GetMapping;
+                import org.springframework.web.bind.annotation.RestController;
+
+                @SpringBootApplication
+                public class DemoApplication {
+
+                    public static void main(String[] args) {
+                        SpringApplication.run(DemoApplication.class, args);
+                    }
+                }
+
+                @RestController
+                class HelloController {
+
+                    @GetMapping("/")
+                    public String hello() {
+                        return "Hello, World!";
+                    }
+                }
+      resources:
+        application.properties: |
+          server.port=8080
+  config:
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        web:
+          build: .
+          ports:
+            - "8080:8080"
+          volumes:
+            - .:/app
+          environment:
+            - JAVA_OPTS=-Xmx512m -Xms256m
+    Dockerfile: |
+      FROM openjdk:17-jdk-slim
+
+      ARG JAR_FILE=target/demo-0.0.1-SNAPSHOT.jar
+      WORKDIR /app
+
+      COPY ${JAR_FILE} app.jar
+
+      EXPOSE 8080
+
+      ENTRYPOINT ["java","-jar","/app/app.jar"]
+    k8s:
+      deployment.yaml: |
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: java-spring-boot-app
+        spec:
+          replicas: 2
+          selector:
+            matchLabels:
+              app: java-spring-boot-app
+          template:
+            metadata:
+              labels:
+                app: java-spring-boot-app
+            spec:
+              containers:
+              - name: java-spring-boot-app
+                image: java-spring-boot-app:latest
+                ports:
+                - containerPort: 8080
+      service.yaml: |
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: java-spring-boot-app-service
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 80
+            targetPort: 8080
+          selector:
+            app: java-spring-boot-app
+  pom.xml: |
+    <project xmlns="http://maven.apache.org/POM/4.0.0"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+        <modelVersion>4.0.0</modelVersion>
+
+        <groupId>com.example</groupId>
+        <artifactId>demo</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <packaging>jar</packaging>
+
+        <name>demo</name>
+        <description>Demo project for Spring Boot</description>
+
+        <parent>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-parent</artifactId>
+            <version>2.5.6</version>
+            <relativePath/>
+        </parent>
+
+        <properties>
+            <java.version>11</java.version>
+        </properties>
+
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+            </dependency>
+        </dependencies>
+
+        <build>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                </plugin>
+            </plugins>
+        </build>
+    </project>
+  README.md: |
+    # Java Spring Boot Application
+
+    This is a comprehensive Java Spring Boot web application.
+
+    ## Setup and Running
+
+    1. Run `mvn clean install` to build the project.
+    2. Run `java -jar target/demo-0.0.1-SNAPSHOT.jar` to start the application.
+    3. Alternatively, you can use Docker:
+       - Build and run the Docker container with `docker-compose up --build`.
+    4. Kubernetes (K8s) deployment:
+       - Use the files in the `config/k8s` directory to deploy the app to a Kubernetes cluster.

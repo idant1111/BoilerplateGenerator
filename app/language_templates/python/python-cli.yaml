@@ -1,0 +1,108 @@
+python-cli_app:
+  cli_app:
+    src:
+      cli:
+        __init__.py: |
+          import click
+          from .commands import hello, goodbye
+
+          @click.group()
+          def cli():
+              pass
+
+          cli.add_command(hello)
+          cli.add_command(goodbye)
+
+          if __name__ == '__main__':
+              cli()
+        commands:
+          __init__.py: ""
+          hello.py: |
+            import click
+
+            @click.command()
+            @click.option('--name', default='World', help='Who to greet')
+            def hello(name):
+                click.echo(f'Hello, {name}!')
+          goodbye.py: |
+            import click
+
+            @click.command()
+            @click.option('--name', default='World', help='Who to bid farewell')
+            def goodbye(name):
+                click.echo(f'Goodbye, {name}!')
+      utils:
+        __init__.py: ""
+        helpers.py: |
+          def capitalize_string(s):
+              return s.capitalize()
+    tests:
+      __init__.py: ""
+      test_cli.py: |
+        from click.testing import CliRunner
+        from cli.commands.hello import hello
+        from cli.commands.goodbye import goodbye
+
+        def test_hello_command():
+            runner = CliRunner()
+            result = runner.invoke(hello, ['--name', 'Alice'])
+            assert result.exit_code == 0
+            assert 'Hello, Alice!' in result.output
+
+        def test_goodbye_command():
+            runner = CliRunner()
+            result = runner.invoke(goodbye, ['--name', 'Bob'])
+            assert result.exit_code == 0
+            assert 'Goodbye, Bob!' in result.output
+    main.py: |
+      from cli import cli
+
+      if __name__ == '__main__':
+          cli()
+    requirements.txt: |
+      click==8.1.3
+      pytest==7.3.1
+    README.md: |
+      # CLI Application
+
+      This is a template for a command-line interface (CLI) application using Click.
+
+      ## Setup and Running
+
+      1. Clone the repository
+      2. Run the CLI:
+         - With Docker: `docker-compose run cli`
+         - Or locally: 
+           - Create a virtual environment: `python -m venv venv`
+           - Activate the virtual environment:
+             - On Windows: `venv\Scripts\activate`
+             - On Unix or MacOS: `source venv/bin/activate`
+           - Install the requirements: `pip install -r requirements.txt`
+           - Run the CLI: `python main.py`
+
+      ## Running Tests
+
+      Run the tests using pytest: `pytest`
+
+    Dockerfile: |
+      FROM python:3.11-slim-buster
+
+      WORKDIR /app
+
+      COPY requirements.txt requirements.txt
+      RUN pip install --no-cache-dir -r requirements.txt
+
+      COPY . .
+
+      CMD ["python", "main.py"]
+
+    docker-compose.yml: |
+      version: '3.8'
+
+      services:
+        cli:
+          build: .
+          environment:
+            - CLI_ENV=development
+          volumes:
+            - .:/app
